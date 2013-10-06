@@ -67,14 +67,39 @@ check_bin() {
 }
 
 do_stats () {
+  # Did we actually save any space?
+  if [[ "${STAT_FILE_SIZE_START}" -eq "0" ]]
+  then
+    echo "I processed ${STAT_FILE_COUNT} files saving 0 bytes"
+    return
+  fi
+
   local stat_file_size_diff=$((STAT_FILE_SIZE_START-STAT_FILE_SIZE_END))
   local stat_file_size_diff_percent=$((stat_file_size_diff*100/STAT_FILE_SIZE_START))
   echo "I processed ${STAT_FILE_COUNT} files saving ${stat_file_size_diff} bytes ( ${stat_file_size_diff_percent}% )"
 }
 
 get_file_size () {
-    local file="${1}"
+  local file="${1}"
+  st_size=""
 
+  # BSD stat?
+  eval $(stat -s "${file}" 2>/dev/null || true)
+  if [[ -n "${st_size}" ]]
+  then
+    return
+  fi
+
+  # GNU stat
+  st_size=$(stat -c '%s' "${file}")
+
+  if [[ -n "${st_size}" ]]
+  then
+    return
+  fi
+
+  echo "Unknown version of stat?" 1>&2
+  exit 1
 }
 
 # Optimize PNG file in place
@@ -87,17 +112,17 @@ do_png () {
   # advpng, part of AdvanceCOMP, is available here:
   # http://advancemame.sourceforge.net/comp-download.html
   verbose "Optimizing with advpng..."
-  advpng -z -4 -q "${1}"
+  advpng -z -4 -q "${1}" || true
 
   # OptiPNG is available here:
   # http://optipng.sourceforge.net/
   verbose "Optimizing with optipng..."
-  optipng -q -zc9 -zm8-9 -zs0-3 -f0-5 -zw 32k "${1}"
+  optipng -q -zc9 -zm8-9 -zs0-3 -f0-5 -zw 32k "${1}" || true
 
   # pngout is available here (binaries only):
   # http://www.jonof.id.au/index.php?p=kenutils
   verbose "Optimizing with pngout..."
-  pngout "${1}" "${TMPF}" -q -y
+  pngout "${1}" "${TMPF}" -q -y || true
   # Sometimes (not always) pngout appends ".PNG" to output filename
   if [[ -f ${TMPF}.PNG ]]
   then
@@ -112,13 +137,13 @@ do_png () {
 # (edit here to add/remove JPEG optimizing steps or change parameters)
 do_jpeg () {
   # $1 is filename
-  local tmp_jpeg=$(mktemp -t imgopt-tmp.XXXXXX)
+  local tmp_jpeg=$(mktemp -t imgopt.tmp.jpg.XXXXXX)
 
   # jpegtran is part of libjpeg (almost surely already on your system).
   # If not, it's here:
   # http://www.ijg.org/
   verbose "Optimizing with jpegtran..."
-  jpegtran -copy none -optimize -outfile "${tmp_jpeg}" "${1}"
+  jpegtran -copy none -optimize -outfile "${tmp_jpeg}" "${1}" || true
 
   # Overwrite in place existing jpeg file
   cat "${tmp_jpeg}" > "${1}"
@@ -128,7 +153,7 @@ do_jpeg () {
 
   # jfifremove is included with this script, be sure to compile and install
   verbose "Optimizing with jfifremove..."
-  jfifremove < "${1}" > "${tmp_jpeg}"
+  jfifremove < "${1}" > "${tmp_jpeg}" || true
 
   # Overwrite in place existing jpeg file
   cat "${tmp_jpeg}" > "${1}"
@@ -185,13 +210,16 @@ do_file () {
     fi
 
     # If optimized file is smaller, copy it over original
-    local size_before=$(stat -c '%s' "$1")
-    STAT_FILE_SIZE_START=$((STAT_FILE_SIZE_START+size_before))
-    local size_after=$(stat -c '%s' "$TMPF")
-    STAT_FILE_SIZE_END=$((STAT_FILE_SIZE_END+size_after))
+    get_file_size "${1}"
+    local size_before="${st_size}"
+    get_file_size "${TMPF}"
+    local size_after="${st_size}"
+
     local bytes_reduced=$((size_before-size_after))
-    if [[ ${size_after} -lt ${size_before} ]]
+    if [[ "${size_after}" -lt "${size_before}" ]]
     then
+      STAT_FILE_SIZE_START=$((STAT_FILE_SIZE_START+size_before))
+      STAT_FILE_SIZE_END=$((STAT_FILE_SIZE_END+size_after))
       cat "${TMPF}" > "${1}"
       echo "${1} reduced ${bytes_reduced} bytes to ${size_after} bytes"
     else
