@@ -109,12 +109,18 @@ do_jpeg () {
   # If not, it's here:
   # http://www.ijg.org/
   verbose "Optimizing with jpegtran..."
-  jpegtran -copy none -optimize -outfile "$tmp_jpeg" "$1" && mv -f "$tmp_jpeg" "$1"
+  jpegtran -copy none -optimize -outfile "$tmp_jpeg" "$1"
+
+  # Overwrite in place existing jpeg file
+  cat "${tmp_jpeg}" > "${1}"
 
   # jfifremove is included with this script, be sure to compile and install
   verbose "Optimizing with jfifremove..."
-  jfifremove < "$1" > "$tmp_jpeg" && mv -f "$tmp_jpeg" "$1"
-  
+  jfifremove < "$1" > "$tmp_jpeg"
+
+  # Overwrite in place existing jpeg file
+  cat "${tmp_jpeg}" > "${1}"
+
   # remove the temp file
   rm -f "$tmp_jpeg"
 
