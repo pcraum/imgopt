@@ -180,31 +180,31 @@ do_file () {
     then
       case "${mime}" in
         image/png )
-        do_png "${TMPF}"
+          do_png "${TMPF}"
         ;;
         image/jpeg )
-        do_jpeg "${TMPF}"
+          do_jpeg "${TMPF}"
         ;;
         * )
-        echo "${1} could not be identified, please verify the type!"
-        return 1
+          echo "${1} could not be identified, please verify the type!"
+          return 1
         ;;
       esac
     else
       # Fall back to file extension
       case "$1" in
         *.[Pp][Nn][Gg] )
-        do_png "${TMPF}"
+          do_png "${TMPF}"
         ;;
         *.[Jj][Pp][Ee][Gg] )
-        do_jpeg "${TMPF}"
+          do_jpeg "${TMPF}"
         ;;
         *.[Jj][Pp][Gg] )
-        do_jpeg "${TMPF}"
+          do_jpeg "${TMPF}"
         ;;
         * )
-        echo "${1} could not be identified, please rename to .jpg or .png"
-        return 1
+          echo "${1} could not be identified, please rename to .jpg or .png"
+          return 1
         ;;
       esac
     fi
@@ -253,32 +253,32 @@ check_bin jfifremove "jfifremove is included with this script, be sure to compil
 
 if [[ "${#}" -eq "0" ]]
 then
-    usage
-    exit
+  usage
+  exit
 fi
 
 # If run with args, optimize these files or recursively all files in a dir
 for arg in "${@}"
 do
-    if [[ "${arg}" == "-h" ]] || [[ "${arg}" == "--help" ]]
-    then
-        usage
-        exit
-    fi
-    TMPF=$(mktemp imgopt.tmp.XXXXXX)
-    RETURNVAL=1
-    if [[ -d "${arg}" ]]
-    then
-      do_dir "${arg}"
-      RETURNVAL="${?}"
-    elif [[ -f ${arg} ]]
-    then
-      do_file "${arg}"
-      RETURNVAL="${?}"
-    else
-      echo "${arg} is neither a file nor a directory, skipping"
-    fi
-    rm -f "${TMPF}"
+  if [[ "${arg}" == "-h" ]] || [[ "${arg}" == "--help" ]]
+  then
+    usage
+    exit
+  fi
+  TMPF=$(mktemp imgopt.tmp.XXXXXX)
+  RETURNVAL=1
+  if [[ -d "${arg}" ]]
+  then
+    do_dir "${arg}"
+    RETURNVAL="${?}"
+  elif [[ -f ${arg} ]]
+  then
+    do_file "${arg}"
+    RETURNVAL="${?}"
+  else
+    echo "${arg} is neither a file nor a directory, skipping"
+  fi
+  rm -f "${TMPF}"
 done
 do_stats
 exit "${RETURNVAL}"
