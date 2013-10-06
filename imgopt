@@ -213,27 +213,32 @@ check_bin pngout     "pngout is available here (binaries only):\nhttp://www.jono
 check_bin jpegtran   "jpegtran is part of libjpeg (almost surely already on your system).\nIf not, it's here:\n http://www.ijg.org/"
 check_bin jfifremove "jfifremove is included with this script, be sure to compile and install"
 
-# If run with args, optimize these files or recursively all files in a dir
-if [[ $1 && $1 != '-h' && $1 != '--help' ]]; then
-  TMPF=$(mktemp tmp.XXXXXX) || exit 1
-  RETURNVAL=1
-  until [[ -z $1 ]]; do
-    if [[ -d $1 ]]; then
-      do_dir "$1"
-      RETURNVAL=$?
-    elif [[ -f $1 ]]; then
-      do_file "$1"
-      RETURNVAL=$?
-    else
-      echo "$1 is neither a file nor a directory, skipping"
-    fi
-    shift
-  done
-  rm -f "$TMPF"
-  do_stats
-  exit $RETURNVAL
-# If run without args, print usage help
-else
-  usage
-  exit 1
+if [[ "${#}" -eq "0" ]]
+then
+    usage
+    exit
 fi
+
+# If run with args, optimize these files or recursively all files in a dir
+for arg in "$@"
+do
+    if [[ "${arg}" == "-h" ]] || [[ "${arg}" == "--help" ]]
+    then
+        usage
+        exit
+    fi
+    TMPF=$(mktemp imgopt.tmp.XXXXXX)
+    RETURNVAL=1
+    if [[ -d "${arg}" ]]; then
+      do_dir "${arg}"
+      RETURNVAL="${?}"
+    elif [[ -f ${arg} ]]; then
+      do_file "${arg}"
+      RETURNVAL="${?}"
+    else
+      echo "${arg} is neither a file nor a directory, skipping"
+    fi
+    rm -f "${TMPF}"
+done
+do_stats
+exit $RETURNVAL
