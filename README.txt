@@ -1,13 +1,10 @@
 imgopt README
 
-# Author: Joel Hardi
-# Version: 0.1.2 2009-04-02
+# Authors: Joel Hardi, Rob Smith, Daniel Kamil Kozar
+# Version: 0.1.4 2013-10-05
 #
 # For more information and usage examples, see:
 # http://lyncd.com/2009/03/imgopt-lossless-optimize-png-jpeg/
-
-# Authors: Joel Hardi, Rob Smith, Daniel Kamil Kozar
-# Version: 0.1.4 2013-10-05
 
 The included bash script imgopt uses find to recursively locate JPEG/PNG 
 files and process them with jpegtran, jfifremove, optipng, advpng and pngout, 
