@@ -84,3 +84,7 @@ Examples:
  imgopt .      Optimize all images in current directory and any subdirectories
  imgopt *.png  Optimize all pngs in current directory only
 
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/kormoc/imgopt/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
