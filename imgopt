@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 
 # Simple bash script to use find to recursively locate JPEG/PNG files
-# and process them with jpegtran, jfifremove, optipng, advpng and pngout
+# and process them with jpegtran, pngout, pngcrush for macosx
 # using settings to minimize file size and strip all metadata headers.
 #
 # To change optimization programs/settings, edit/comment out in functions
 # do_jpeg and do_png below.
 #
-# Authors: Joel Hardi, Rob Smith, Daniel Kamil Kozar
-# Version: 0.1.4 2013-10-05
+# Authors: Joel Hardi, Rob Smith, Daniel Kamil Kozar, Patrick Poulain
+# Version: 0.0.1 2014-04-11
 #
-# For more information and usage examples, see:
-# http://lyncd.com/2009/03/imgopt-lossless-optimize-png-jpeg/
+# cmd line option are from http://css-ig.net/png-tools-overview.html
+#
 
 # Global stat vars
 STAT_FILE_COUNT="0"
@@ -57,9 +57,8 @@ EOF
 check_bin() {
   # $1 is the binary
   # $2 is the text to print if missing
-  which "${1}" &> /dev/null
-  if [[ "${?}" -ne "0" ]]
-  then
+  hash "${1}" &> /dev/null
+  if [[ "${?}" -ne "0" ]]; then
     echo -e "${2}"
     exit 1
   fi
@@ -108,19 +107,19 @@ get_file_size () {
 # http://optipng.sourceforge.net/pngtech/optipng.html
 do_png () {
   # $1 is filename
+  local tmp_png=$(mktemp -t imgopt.tmp.png.XXXXXX)
+  # pngcrush can be installed using brew :
+  # brew install pngcrush
+  verbose "Optimizing with pngcrush..."
+  pngcrush -brute -blacken -reduce -rem text -rem alla -rem time "${1}" "${tmp_png}" || true
+  
+  # Overwrite in place existing jpeg file
+  cat "${tmp_png}" > "${1}"
+  # remove the temp file
+  rm -f "${tmp_png}"
 
-  # advpng, part of AdvanceCOMP, is available here:
-  # http://advancemame.sourceforge.net/comp-download.html
-  verbose "Optimizing with advpng..."
-  advpng -z -4 -q "${1}" || true
-
-  # OptiPNG is available here:
-  # http://optipng.sourceforge.net/
-  verbose "Optimizing with optipng..."
-  optipng -q -zc9 -zm8-9 -zs0-3 -f0-5 -zw 32k "${1}" || true
-
-  # pngout is available here (binaries only):
-  # http://www.jonof.id.au/index.php?p=kenutils
+  # pngout can be installed using brew :
+  # brew install https://gist.githubusercontent.com/lucasmichot/10379237/raw/ed849e34d32d47f91fca08eec13bdbbe871f10b9/pngout.rb
   verbose "Optimizing with pngout..."
   pngout "${1}" "${TMPF}" -q -y || true
   # Sometimes (not always) pngout appends ".PNG" to output filename
@@ -144,16 +143,6 @@ do_jpeg () {
   # http://www.ijg.org/
   verbose "Optimizing with jpegtran..."
   jpegtran -copy none -optimize -outfile "${tmp_jpeg}" "${1}" || true
-
-  # Overwrite in place existing jpeg file
-  cat "${tmp_jpeg}" > "${1}"
-
-  # remove the temp file
-  rm -f "${tmp_jpeg}"
-
-  # jfifremove is included with this script, be sure to compile and install
-  verbose "Optimizing with jfifremove..."
-  jfifremove < "${1}" > "${tmp_jpeg}" || true
 
   # Overwrite in place existing jpeg file
   cat "${tmp_jpeg}" > "${1}"
@@ -245,11 +234,9 @@ do_dir () {
 }
 
 # Sanity check binaries
-check_bin advpng     "advpng, part of AdvanceCOMP, is available here:\nhttp://advancemame.sourceforge.net/comp-download.html"
-check_bin optipng    "OptiPNG is available here:\nhttp://optipng.sourceforge.net/"
-check_bin pngout     "pngout is available here (binaries only):\nhttp://www.jonof.id.au/index.php?p=kenutils"
-check_bin jpegtran   "jpegtran is part of libjpeg (almost surely already on your system).\nIf not, it's here:\n http://www.ijg.org/"
-check_bin jfifremove "jfifremove is included with this script, be sure to compile and install"
+check_bin pngcrush    "pngcrush is available via brew install pngcrush"
+check_bin pngout     "pngout is available via brew install https://gist.githubusercontent.com/lucasmichot/10379237/raw/ed849e34d32d47f91fca08eec13bdbbe871f10b9/pngout.rb"
+check_bin jpegtran   "jpegtran is available via brew install jpegtran"
 
 if [[ "${#}" -eq "0" ]]
 then
